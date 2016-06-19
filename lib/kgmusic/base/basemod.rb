@@ -25,24 +25,19 @@ module KgMusic
       request.body_str
     end
 
-    def __perform_request(url, follow_location = false, **args)
+    def __build_request(url, follow_location, **args)
+      args.include?(:params) ? __url = Curl.urlalize(url, args[:params])
+                             : __url = Curl.urlalize(url)
 
-      if args.include?(:params)
-        __url = Curl.urlalize(url, args[:params])
-      else
-        __url = Curl.urlalize(url)
-      end
-
-      c = Curl::Easy.new(__url)
-
-      c.follow_location = follow_location
-
+      c = Curl::Easy.new(__url) { |c| c.follow_location = follow_location }
       args[:opts].map { |k, v| c.set(k.to_sym, v) } if args.include?(:opts)
-
-      c.perform
-
       c
+    end
 
+    def __perform_request(url, follow_location = false, **args)
+      request = __build_request(url, follow_location, **args)
+      request.perform
+      request
     end
 
     def has_unallowed_symbols?(key)
