@@ -1,0 +1,1 @@
+require 'kgmusic/base/basemod'
