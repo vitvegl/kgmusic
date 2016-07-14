@@ -6,6 +6,7 @@ module KgMusic
   describe Downloader do
     before do
       @m = KgMusic::Downloader.new artist: "Metall%ica$", album: "Reload^"
+      @m.search
     end
 
     it 'keys validation' do
@@ -14,8 +15,7 @@ module KgMusic
     end
 
     it 'direct_link' do
-      result = @m.search
-      expect(URI.parse(result)).to be_kind_of(URI::Generic)
+      expect(URI.parse(@m.direct_link)).to be_kind_of(URI::Generic)
     end
 
   end

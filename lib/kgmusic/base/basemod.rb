@@ -16,27 +16,24 @@ module KgMusic
 
     protected
     def create_work_dir
-      @work_dir = File.join(ENV['HOME'], 'kgmusic')
-      Dir.mkdir(@work_dir, 0700) unless Dir.exist?(@work_dir)
+      @@work_dir = File.join(ENV['HOME'], 'kgmusic')
+      Dir.mkdir(@@work_dir, 0700) unless Dir.exist?(@@work_dir)
     end
 
-    def go_to(url, follow_location = true, **args)
-      request = __perform_request(url, follow_location, **args)
+    def go_to(url, params = {}, &block)
+      request = __perform_request(url, params, &block)
       request.body_str
     end
 
-    def __build_request(url, follow_location, **args)
-      args.include?(:params) ? __url = Curl.urlalize(url, args[:params])
-                             : __url = Curl.urlalize(url)
-
-      c = Curl::Easy.new(__url) { |c| c.follow_location = follow_location }
-      args[:opts].map { |k, v| c.set(k.to_sym, v) } if args.include?(:opts)
-      c
+    def __build_request(url, params = {}, &block)
+      __url = Curl.urlalize(url, params)
+      Curl::Easy.new(__url, &block)
     end
 
-    def __perform_request(url, follow_location = false, **args)
-      request = __build_request(url, follow_location, **args)
+    def __perform_request(url, params = {}, &block)
+      request = __build_request(url, params, &block)
       request.perform
+
       request
     end
 
@@ -47,10 +44,6 @@ module KgMusic
 
     def strip_unallowed_symbols!(key)
       UNALLOWED_SYMBOLS.map {|s| key.delete!(s)}
-    end
-
-    def parse_html doc
-      Nokogiri::HTML.parse doc
     end
 
     def validate(key)
@@ -74,32 +67,27 @@ module KgMusic
     end
 
     def __head_request(url)
-      r = __perform_request(url, { opts: { nobody: true } })
-      parse_http_header r.header_str
+      request = __perform_request(url) { |r| r.set(:nobody, true) }
+
+      parse_http_header(request.header_str)
     end
 
-    def get_content_length(uri)
-      response = __head_request(uri)
+    def get_content_length(url)
+      response = __head_request(url)
       response['Content-Length'].to_i
     end
 
-    def obtain_final_url(__uri)
-      response = __perform_request(__uri)
-      __header_str = response.header_str
-      __headers = parse_http_header(__header_str)
-      __headers['Location'] || __uri
+    def obtain_final_url(url)
+      response = __perform_request(url)
+      headers = parse_http_header(response.header_str)
+
+      headers['Location'] || url
     end
 
-    def get_album_info(url)
-      __response = go_to(url)
-      doc = parse_html(__response)
-      doc.css('div.album-info')
-    end
-
-    def get_direct_link(__url)
-      __response = go_to(__url)
-      doc = parse_html(__response)
-      @direct_link = doc.css('a.download-block').attr('href').to_s
+    def get_direct_link(url)
+      response = go_to(url)
+      doc = Nokogiri::HTML.parse(response)
+      doc.css('a.download-block').attr('href').to_s
     end
   end
 end
