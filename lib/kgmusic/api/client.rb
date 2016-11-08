@@ -13,6 +13,10 @@ module KgMusic
           c.perform
         end
         @@root = Nokogiri::HTML.parse(c.body_str)
+        @connect_time = c.connect_time
+        @primary_ip = c.primary_ip
+        @request_size = c.request_size
+        @content_type = c.content_type
       end
 
       def popular_artists
