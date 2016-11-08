@@ -1,0 +1,34 @@
+#!/usr/bin/env ruby
+require 'optparse'
+require 'kgmusic'
+
+opt = OptionParser.new do |option|
+  option.on("--artist=Artist", String) do |artist|
+    @artist = artist
+  end
+  option.on("--album=Album", String) do |album|
+    @album = album
+  end
+end
+
+opt.parse!
+
+def run
+  album = proc {
+    KgMusic::Downloader.new(
+      {
+        :artist => @artist,
+        :album => @album
+      }
+    )
+  }.[]
+  album.search
+  album.search.nil? ? (puts 'album not found'; exit)
+                    : album.download_album
+end
+
+if @artist.nil? or @album.nil?
+  print opt.help
+else
+  run
+end
